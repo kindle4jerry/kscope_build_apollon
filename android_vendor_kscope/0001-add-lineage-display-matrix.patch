@@ -1,0 +1,66 @@
+From f5eb420092a18e610820e88e99c6533f00fa7169 Mon Sep 17 00:00:00 2001
+From: kindle4jerry <kindle4jerry@gmail.com>
+Date: Wed, 31 Aug 2022 12:27:21 +0800
+Subject: [PATCH] add lineage display matrix
+
+Change-Id: Ie89a0385814e9ca0a1ada57e13d7945f9975fa40
+---
+ .../config/vintf/device_framework_matrix.xml  | 42 +++++++++++++++++++
+ 1 file changed, 42 insertions(+)
+
+diff --git a/target/config/vintf/device_framework_matrix.xml b/target/config/vintf/device_framework_matrix.xml
+index a98f9c2..32c9210 100644
+--- a/target/config/vintf/device_framework_matrix.xml
++++ b/target/config/vintf/device_framework_matrix.xml
+@@ -32,6 +32,48 @@
+             <instance>default</instance>
+         </interface>
+     </hal>
++    <!-- Display -->
++    <hal format="hidl" optional="true">
++        <name>vendor.lineage.livedisplay</name>
++        <version>2.0</version>
++        <version>2.1</version>
++        <interface>
++            <name>IAdaptiveBacklight</name>
++            <instance>default</instance>
++        </interface>
++        <interface>
++            <name>IAntiFlicker</name>
++            <instance>default</instance>
++        </interface>
++        <interface>
++            <name>IAutoContrast</name>
++            <instance>default</instance>
++        </interface>
++        <interface>
++            <name>IColorBalance</name>
++            <instance>default</instance>
++        </interface>
++        <interface>
++            <name>IDisplayColorCalibration</name>
++            <instance>default</instance>
++        </interface>
++        <interface>
++            <name>IDisplayModes</name>
++            <instance>default</instance>
++        </interface>
++        <interface>
++            <name>IPictureAdjustment</name>
++            <instance>default</instance>
++        </interface>
++        <interface>
++            <name>IReadingEnhancement</name>
++            <instance>default</instance>
++        </interface>
++        <interface>
++            <name>ISunlightEnhancement</name>
++            <instance>default</instance>
++        </interface>
++    </hal>
+     <!-- Touch -->
+     <hal format="hidl" optional="true">
+         <name>vendor.lineage.touch</name>
+-- 
+2.25.1
+
