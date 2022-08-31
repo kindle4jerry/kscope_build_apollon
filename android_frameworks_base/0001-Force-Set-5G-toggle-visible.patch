@@ -1,0 +1,26 @@
+From f958b5105780a11e500e22c62dd9a9e273310826 Mon Sep 17 00:00:00 2001
+From: kindle4jerry <kindle4jerry@gmail.com>
+Date: Sun, 14 Aug 2022 15:59:41 +0800
+Subject: [PATCH] Force Set 5G toggle visible
+
+Change-Id: Ib821f802c77325bcbc15082000e879c85704b1a5
+---
+ .../com/android/systemui/qs/tiles/dialog/InternetDialog.java    | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/packages/SystemUI/src/com/android/systemui/qs/tiles/dialog/InternetDialog.java b/packages/SystemUI/src/com/android/systemui/qs/tiles/dialog/InternetDialog.java
+index b1e8c962..fe483ae0 100644
+--- a/packages/SystemUI/src/com/android/systemui/qs/tiles/dialog/InternetDialog.java
++++ b/packages/SystemUI/src/com/android/systemui/qs/tiles/dialog/InternetDialog.java
+@@ -400,7 +400,7 @@ public class InternetDialog extends SystemUIDialog implements
+             mMobileNetworkLayout.setVisibility(View.GONE);
+         } else {
+             mMobileNetworkLayout.setVisibility(View.VISIBLE);
+-            mFivegLayout.setVisibility(mShouldShowFivegToggle ? View.VISIBLE : View.GONE);
++            mFivegLayout.setVisibility(mShouldShowFivegToggle ? View.VISIBLE : View.VISIBLE);
+             mMobileDataToggle.setChecked(mInternetDialogController.isMobileDataEnabled());
+             mFivegToggle.setChecked(mInternetDialogController.isFivegEnabled());
+             mMobileTitleText.setText(getMobileNetworkTitle());
+-- 
+2.25.1
+
