@@ -1,0 +1,48 @@
+From e82effa38a6d2ac8bd700732d655708f23878475 Mon Sep 17 00:00:00 2001
+From: Michael Bestas <mkbestas@lineageos.org>
+Date: Wed, 23 Mar 2022 00:01:10 +0200
+Subject: [PATCH] enableUsbDataSignal: Handle failures in optional sysfs gracefully
+
+* ID and VBUS paths are not present on all devices,
+  depending on the device dwc3 setup.
+* Gadget pull is optional.
+
+Change-Id: I235284ad7bad9fbf34568958fd94e32b2787a1c5
+---
+
+diff --git a/hal/Usb.cpp b/hal/Usb.cpp
+index 98f6502..df644cf 100644
+--- a/hal/Usb.cpp
++++ b/hal/Usb.cpp
+@@ -61,18 +61,15 @@
+     }
+ 
+     if (!WriteStringToFile(mGadgetName, PULLUP_PATH)) {
+-      ALOGE("Gadget cannot be pulled up");
+-      result = false;
++      ALOGW("Gadget cannot be pulled up");
+     }
+   } else {
+     if (!WriteStringToFile("1", mDevicePath + ID_PATH)) {
+-      ALOGE("Not able to turn off host mode");
+-      result = false;
++      ALOGW("Not able to turn off host mode");
+     }
+ 
+     if (!WriteStringToFile("0", mDevicePath + VBUS_PATH)) {
+-      ALOGE("Not able to set Vbus state");
+-      result = false;
++      ALOGW("Not able to set Vbus state");
+     }
+ 
+     if (!WriteStringToFile("0", mDevicePath + USB_DATA_PATH)) {
+@@ -81,8 +78,7 @@
+     }
+ 
+     if (!WriteStringToFile("none", PULLUP_PATH)) {
+-      ALOGE("Gadget cannot be pulled down");
+-      result = false;
++      ALOGW("Gadget cannot be pulled down");
+     }
+   }
+ 

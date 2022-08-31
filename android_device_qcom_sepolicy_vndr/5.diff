@@ -1,0 +1,21 @@
+From fc77d32e5e8d96052d7d882da609f82ed9d86ad1 Mon Sep 17 00:00:00 2001
+From: Alexander Koskovich <akoskovich@pm.me>
+Date: Wed, 02 Mar 2022 11:43:50 -0700
+Subject: [PATCH] sepolicy_vndr: qva: Update QTI USB HAL to v1.3
+
+Change-Id: Ia3481e6780d75c177038170598e45bab530524b9
+---
+
+diff --git a/qva/vendor/common/file_contexts b/qva/vendor/common/file_contexts
+index da8f6e8..1772f28 100644
+--- a/qva/vendor/common/file_contexts
++++ b/qva/vendor/common/file_contexts
+@@ -134,7 +134,7 @@
+ /(vendor|system/vendor)/bin/wigighalsvc                                            u:object_r:vendor_wigighalsvc_exec:s0
+ /(vendor|system/vendor)/bin/wigignpt                                               u:object_r:vendor_wigignpt_exec:s0
+ /(vendor|system/vendor)/bin/sensingdaemon                                          u:object_r:vendor_sensingdaemon_exec:s0
+-/vendor/bin/hw/android\.hardware\.usb\@1\.[0-2]-service-qti                        u:object_r:vendor_hal_usb_qti_exec:s0
++/vendor/bin/hw/android\.hardware\.usb\@1\.[0-3]-service-qti                        u:object_r:vendor_hal_usb_qti_exec:s0
+ /vendor/bin/hw/android\.hardware\.usb\.gadget\@1\.[0-2]-service-qti                u:object_r:vendor_hal_usb_qti_exec:s0
+ /vendor/bin/vendor\.qti\.qspmhal@1\.0-service                                      u:object_r:vendor_hal_qspmhal_default_exec:s0
+ /vendor/bin/qesdk-manager                                                          u:object_r:vendor_hal_qesdhal_default_exec:s0

@@ -1,0 +1,421 @@
+From a2c366e07319a4ea6bcb9fec4b92542d21d715b5 Mon Sep 17 00:00:00 2001
+From: Albert Wang <albertccwang@google.com>
+Date: Tue, 23 Mar 2021 16:27:22 +0800
+Subject: [PATCH] Update USB HAL to V1.3 implementation
+
+Supports to enable/disable USB data signaling
+
+Bug: 161414036
+Test: Pass USB V1.3 HIDL tests
+Signed-off-by: Albert Wang <albertccwang@google.com>
+Change-Id: I370e69264bec6c2c7ac61094db49f5e3a4b317b6
+---
+
+diff --git a/hal/Android.bp b/hal/Android.bp
+index a24756d..5adb8c1 100644
+--- a/hal/Android.bp
++++ b/hal/Android.bp
+@@ -17,19 +17,20 @@
+ }
+ 
+ cc_binary {
+-    name: "android.hardware.usb@1.2-service-qti",
++    name: "android.hardware.usb@1.3-service-qti",
+     defaults: ["qti_usb_hal_defaults"],
+     shared_libs: [
+         "android.hardware.usb@1.0",
+         "android.hardware.usb@1.1",
+         "android.hardware.usb@1.2",
++        "android.hardware.usb@1.3",
+     ],
+     srcs: [
+         "Usb.cpp",
+     ],
+ 
+-    init_rc: ["android.hardware.usb@1.2-service-qti.rc"],
+-    vintf_fragments: ["android.hardware.usb@1.2-service.xml"],
++    init_rc: ["android.hardware.usb@1.3-service-qti.rc"],
++    vintf_fragments: ["android.hardware.usb@1.3-service.xml"],
+ }
+ 
+ cc_binary {
+diff --git a/hal/Usb.cpp b/hal/Usb.cpp
+index e522979..9a58dd2 100644
+--- a/hal/Usb.cpp
++++ b/hal/Usb.cpp
+@@ -2,7 +2,7 @@
+  * Copyright (C) 2019-2021, The Linux Foundation. All rights reserved.
+  * Not a Contribution.
+  *
+- * Copyright (C) 2017 The Android Open Source Project
++ * Copyright (C) 2021 The Android Open Source Project
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+@@ -17,7 +17,7 @@
+  * limitations under the License.
+  */
+ 
+-#define LOG_TAG "android.hardware.usb@1.2-service-qti"
++#define LOG_TAG "android.hardware.usb@1.3-service-qti"
+ 
+ #include <android-base/logging.h>
+ #include <assert.h>
+@@ -43,12 +43,52 @@
+ namespace android {
+ namespace hardware {
+ namespace usb {
+-namespace V1_2 {
++namespace V1_3 {
+ namespace implementation {
+ 
+ const char GOOGLE_USB_VENDOR_ID_STR[] = "18d1";
+ const char GOOGLE_USBC_35_ADAPTER_UNPLUGGED_ID_STR[] = "5029";
+ 
++Return<bool> Usb::enableUsbDataSignal(bool enable) {
++  bool result = true;
++
++  ALOGI("Userspace turn %s USB data signaling", enable ? "on" : "off");
++
++  if (enable) {
++    if (!WriteStringToFile("1", USB_DATA_PATH)) {
++      ALOGE("Not able to turn on usb connection notification");
++      result = false;
++    }
++
++    if (!WriteStringToFile(kGadgetName, PULLUP_PATH)) {
++      ALOGE("Gadget cannot be pulled up");
++      result = false;
++    }
++  } else {
++    if (!WriteStringToFile("1", ID_PATH)) {
++      ALOGE("Not able to turn off host mode");
++      result = false;
++    }
++
++    if (!WriteStringToFile("0", VBUS_PATH)) {
++      ALOGE("Not able to set Vbus state");
++      result = false;
++    }
++
++    if (!WriteStringToFile("0", USB_DATA_PATH)) {
++      ALOGE("Not able to turn off usb connection notification");
++      result = false;
++    }
++
++    if (!WriteStringToFile("none", PULLUP_PATH)) {
++      ALOGE("Gadget cannot be pulled down");
++      result = false;
++    }
++  }
++
++  return result;
++}
++
+ // Set by the signal handler to destroy the thread
+ volatile bool destroyThread;
+ 
+@@ -593,7 +633,7 @@
+ 
+ struct data {
+   int uevent_fd;
+-  android::hardware::usb::V1_2::implementation::Usb *usb;
++  android::hardware::usb::V1_3::implementation::Usb *usb;
+ };
+ 
+ Return<void> callbackNotifyPortStatusChangeHelper(struct Usb *usb) {
+@@ -781,7 +821,7 @@
+   }
+ 
+   payload.uevent_fd = uevent_fd;
+-  payload.usb = (android::hardware::usb::V1_2::implementation::Usb *)param;
++  payload.usb = (android::hardware::usb::V1_3::implementation::Usb *)param;
+ 
+   fcntl(uevent_fd, F_SETFL, O_NONBLOCK);
+ 
+@@ -1049,7 +1089,7 @@
+ }
+ 
+ }  // namespace implementation
+-}  // namespace V1_2
++}  // namespace V1_3
+ }  // namespace usb
+ }  // namespace hardware
+ }  // namespace android
+@@ -1057,8 +1097,8 @@
+ int main() {
+   using android::hardware::configureRpcThreadpool;
+   using android::hardware::joinRpcThreadpool;
+-  using android::hardware::usb::V1_2::IUsb;
+-  using android::hardware::usb::V1_2::implementation::Usb;
++  using android::hardware::usb::V1_3::IUsb;
++  using android::hardware::usb::V1_3::implementation::Usb;
+ 
+   android::sp<IUsb> service = new Usb();
+ 
+diff --git a/hal/Usb.h b/hal/Usb.h
+index 94ac5c6..e77667e 100644
+--- a/hal/Usb.h
++++ b/hal/Usb.h
+@@ -1,9 +1,24 @@
+-#ifndef ANDROID_HARDWARE_USB_V1_2_USB_H
+-#define ANDROID_HARDWARE_USB_V1_2_USB_H
++/*
++ * Copyright (C) 2021 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++#pragma once
+ 
+-#include <android/hardware/usb/1.2/IUsb.h>
++#include <android-base/file.h>
+ #include <android/hardware/usb/1.2/types.h>
+ #include <android/hardware/usb/1.2/IUsbCallback.h>
++#include <android/hardware/usb/1.3/IUsb.h>
+ #include <hidl/Status.h>
+ #include <utils/Log.h>
+ 
+@@ -17,7 +32,7 @@
+ namespace android {
+ namespace hardware {
+ namespace usb {
+-namespace V1_2 {
++namespace V1_3 {
+ namespace implementation {
+ 
+ using ::android::hardware::usb::V1_0::PortRole;
+@@ -30,9 +45,9 @@
+ using ::android::hardware::usb::V1_2::ContaminantDetectionStatus;
+ using ::android::hardware::usb::V1_2::ContaminantProtectionMode;
+ using ::android::hardware::usb::V1_2::ContaminantProtectionStatus;
+-using ::android::hardware::usb::V1_2::PortStatus;
+-using ::android::hardware::usb::V1_2::IUsb;
+ using ::android::hardware::usb::V1_2::IUsbCallback;
++using ::android::hardware::usb::V1_2::PortStatus;
++using ::android::hardware::usb::V1_3::IUsb;
+ using ::android::hidl::base::V1_0::DebugInfo;
+ using ::android::hidl::base::V1_0::IBase;
+ using ::android::hardware::hidl_array;
+@@ -41,7 +56,15 @@
+ using ::android::hardware::hidl_vec;
+ using ::android::hardware::Return;
+ using ::android::hardware::Void;
+-using ::android::sp;
++using ::android::base::WriteStringToFile;
++
++constexpr char kGadgetName[] = "a600000.dwc3";
++#define SOC_PATH "/sys/devices/platform/soc/a600000.ssusb/"
++#define ID_PATH SOC_PATH "id"
++#define VBUS_PATH SOC_PATH "b_sess"
++#define USB_DATA_PATH SOC_PATH "usb_data_enabled"
++#define GADGET_PATH "/config/usb_gadget/g1/"
++#define PULLUP_PATH GADGET_PATH "UDC"
+ 
+ struct Usb : public IUsb {
+     Usb();
+@@ -51,6 +74,7 @@
+     Return<void> queryPortStatus() override;
+     Return<void> enableContaminantPresenceProtection(const hidl_string &portName, bool enable) override;
+     Return<void> enableContaminantPresenceDetection(const hidl_string &portName, bool enable) override;
++    Return<bool> enableUsbDataSignal(bool enable) override;
+ 
+     sp<V1_0::IUsbCallback> mCallback_1_0;
+     // Protects mCallback variable
+@@ -81,9 +105,7 @@
+ };
+ 
+ }  // namespace implementation
+-}  // namespace V1_2
++}  // namespace V1_3
+ }  // namespace usb
+ }  // namespace hardware
+ }  // namespace android
+-
+-#endif  // ANDROID_HARDWARE_USB_V1_2_USB_H
+diff --git a/hal/android.hardware.usb@1.2-service-qti.rc b/hal/android.hardware.usb@1.2-service-qti.rc
+deleted file mode 100644
+index c7a86f6..0000000
+--- a/hal/android.hardware.usb@1.2-service-qti.rc
++++ /dev/null
+@@ -1,31 +0,0 @@
+-# Copyright (c) 2020, The Linux Foundation. All rights reserved.
+-
+-# Redistribution and use in source and binary forms, with or without
+-# modification, are permitted provided that the following conditions are
+-# met:
+-#     * Redistributions of source code must retain the above copyright
+-#       notice, this list of conditions and the following disclaimer.
+-#     * Redistributions in binary form must reproduce the above
+-#       copyright notice, this list of conditions and the following
+-#       disclaimer in the documentation and/or other materials provided
+-#       with the distribution.
+-#     * Neither the name of The Linux Foundation nor the names of its
+-#       contributors may be used to endorse or promote products derived
+-#       from this software without specific prior written permission.
+-
+-# THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
+-# WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+-# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
+-# ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
+-# BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+-# BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+-# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+-# OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+-# IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-
+-service vendor.usb-hal-1-2 /vendor/bin/hw/android.hardware.usb@1.2-service-qti
+-    class hal
+-    user root
+-    group root system mtp
+diff --git a/hal/android.hardware.usb@1.2-service.xml b/hal/android.hardware.usb@1.2-service.xml
+deleted file mode 100644
+index 3af5c1f..0000000
+--- a/hal/android.hardware.usb@1.2-service.xml
++++ /dev/null
+@@ -1,39 +0,0 @@
+-<!-- Copyright (c) 2019-2020 The Linux Foundation. All rights reserved.
+-
+-Redistribution and use in source and binary forms, with or without
+-modification, are permitted provided that the following conditions are
+-met:
+-    * Redistributions of source code must retain the above copyright
+-      notice, this list of conditions and the following disclaimer.
+-    * Redistributions in binary form must reproduce the above
+-      copyright notice, this list of conditions and the following
+-      disclaimer in the documentation and/or other materials provided
+-      with the distribution.
+-    * Neither the name of The Linux Foundation nor the names of its
+-      contributors may be used to endorse or promote products derived
+-      from this software without specific prior written permission.
+-
+-THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
+-WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
+-ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
+-BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+-CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+-SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+-BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+-WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+-IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+--->
+-<manifest version="1.0" type="device">
+-    <hal format="hidl">
+-        <name>android.hardware.usb</name>
+-        <transport>hwbinder</transport>
+-        <version>1.2</version>
+-        <interface>
+-            <name>IUsb</name>
+-            <instance>default</instance>
+-        </interface>
+-        <fqname>@1.2::IUsb/default</fqname>
+-    </hal>
+-</manifest>
+diff --git a/hal/android.hardware.usb@1.3-service-qti.rc b/hal/android.hardware.usb@1.3-service-qti.rc
+new file mode 100644
+index 0000000..4e4b939
+--- /dev/null
++++ b/hal/android.hardware.usb@1.3-service-qti.rc
+@@ -0,0 +1,31 @@
++# Copyright (c) 2020, The Linux Foundation. All rights reserved.
++
++# Redistribution and use in source and binary forms, with or without
++# modification, are permitted provided that the following conditions are
++# met:
++#     * Redistributions of source code must retain the above copyright
++#       notice, this list of conditions and the following disclaimer.
++#     * Redistributions in binary form must reproduce the above
++#       copyright notice, this list of conditions and the following
++#       disclaimer in the documentation and/or other materials provided
++#       with the distribution.
++#     * Neither the name of The Linux Foundation nor the names of its
++#       contributors may be used to endorse or promote products derived
++#       from this software without specific prior written permission.
++
++# THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
++# WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
++# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
++# ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
++# BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
++# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
++# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
++# BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
++# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
++# OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
++# IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++
++service vendor.usb-hal-1-3 /vendor/bin/hw/android.hardware.usb@1.3-service-qti
++    class hal
++    user root
++    group root system mtp
+diff --git a/hal/android.hardware.usb@1.3-service.xml b/hal/android.hardware.usb@1.3-service.xml
+new file mode 100644
+index 0000000..d7388a0
+--- /dev/null
++++ b/hal/android.hardware.usb@1.3-service.xml
+@@ -0,0 +1,39 @@
++<!-- Copyright (c) 2019-2020 The Linux Foundation. All rights reserved.
++
++Redistribution and use in source and binary forms, with or without
++modification, are permitted provided that the following conditions are
++met:
++    * Redistributions of source code must retain the above copyright
++      notice, this list of conditions and the following disclaimer.
++    * Redistributions in binary form must reproduce the above
++      copyright notice, this list of conditions and the following
++      disclaimer in the documentation and/or other materials provided
++      with the distribution.
++    * Neither the name of The Linux Foundation nor the names of its
++      contributors may be used to endorse or promote products derived
++      from this software without specific prior written permission.
++
++THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
++WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
++MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
++ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
++BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
++CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
++SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
++BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
++WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
++OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
++IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++-->
++<manifest version="1.0" type="device">
++    <hal format="hidl">
++        <name>android.hardware.usb</name>
++        <transport>hwbinder</transport>
++        <version>1.3</version>
++        <interface>
++            <name>IUsb</name>
++            <instance>default</instance>
++        </interface>
++        <fqname>@1.3::IUsb/default</fqname>
++    </hal>
++</manifest>
+diff --git a/vendor_product.mk b/vendor_product.mk
+index c30877d..a383848 100644
+--- a/vendor_product.mk
++++ b/vendor_product.mk
+@@ -23,7 +23,7 @@
+ endif
+ 
+ ifneq ($(TARGET_KERNEL_VERSION),$(filter $(TARGET_KERNEL_VERSION),4.9 4.14))
+-  PRODUCT_PACKAGES += android.hardware.usb@1.2-service-qti
++  PRODUCT_PACKAGES += android.hardware.usb@1.3-service-qti
+ endif
+ 
+ ifeq ($(TARGET_USES_USB_GADGET_HAL), true)

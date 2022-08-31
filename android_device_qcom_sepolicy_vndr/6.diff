@@ -1,0 +1,20 @@
+From f827e05802f8a23454587fd7303c2480bb0c1fab Mon Sep 17 00:00:00 2001
+From: LuK1337 <priv.luk@gmail.com>
+Date: Wed, 16 Mar 2022 11:23:16 +0100
+Subject: [PATCH] sepolicy_vndr: legacy: Label QTI USB HAL
+
+Change-Id: I0fce6172ce47f4f61d9ee2cb829749b4e5643403
+---
+
+diff --git a/legacy/vendor/common/file_contexts b/legacy/vendor/common/file_contexts
+index ab7e4f4..9333036 100644
+--- a/legacy/vendor/common/file_contexts
++++ b/legacy/vendor/common/file_contexts
+@@ -347,6 +347,7 @@
+ /(vendor|system/vendor)/bin/power_off_alarm        u:object_r:power_off_alarm_exec:s0
+ /vendor/bin/hw/vendor\.qti\.hardware\.vibrator@1\.[0-2]-service    u:object_r:hal_vibrator_default_exec:s0
+ /vendor/bin/hw/vendor\.qti\.hardware\.vibrator\.service    u:object_r:hal_vibrator_default_exec:s0
++/(vendor|system/vendor)/bin/hw/android\.hardware\.usb\@1\.[0-3]-service-qti    u:object_r:hal_usb_default_exec:s0
+ /(vendor|system/vendor)/bin/hw/android\.hardware\.usb\.gadget@1\.0-service-qti u:object_r:hal_usb_gadget_qti_exec:s0
+ /(vendor|system/vendor)/bin/hw/vendor\.qti\.hardware\.scve\.panorama@1\.0-service    u:object_r:vendor_scve_exec:s0
+ /(vendor|system/vendor)/bin/hw/vendor\.qti\.hardware\.scve\.objecttracker@1\.0-service    u:object_r:vendor_scve_exec:s0

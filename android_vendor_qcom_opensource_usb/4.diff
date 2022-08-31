@@ -1,0 +1,44 @@
+From c19469cd92d455135df243d46dd3ef985ed25ea0 Mon Sep 17 00:00:00 2001
+From: LuK1337 <priv.luk@gmail.com>
+Date: Fri, 01 Apr 2022 23:58:14 +0200
+Subject: [PATCH] usb: Add support for SEC specific enableUsbDataSignal path
+
+Change-Id: Ib3cb4f90db730180d72ca4ee161906e2c0dd7383
+---
+
+diff --git a/hal/Usb.cpp b/hal/Usb.cpp
+index df644cf..cf34a90 100644
+--- a/hal/Usb.cpp
++++ b/hal/Usb.cpp
+@@ -55,7 +55,8 @@
+   ALOGI("Userspace turn %s USB data signaling", enable ? "on" : "off");
+ 
+   if (enable) {
+-    if (!WriteStringToFile("1", mDevicePath + USB_DATA_PATH)) {
++    if (!WriteStringToFile("1", mDevicePath + USB_DATA_PATH) &&
++        !WriteStringToFile("OFF", USB_DATA_PATH_SEC)) {
+       ALOGE("Not able to turn on usb connection notification");
+       result = false;
+     }
+@@ -72,7 +73,8 @@
+       ALOGW("Not able to set Vbus state");
+     }
+ 
+-    if (!WriteStringToFile("0", mDevicePath + USB_DATA_PATH)) {
++    if (!WriteStringToFile("0", mDevicePath + USB_DATA_PATH) &&
++        !WriteStringToFile("ON", USB_DATA_PATH_SEC)) {
+       ALOGE("Not able to turn off usb connection notification");
+       result = false;
+     }
+diff --git a/hal/Usb.h b/hal/Usb.h
+index e48b859..0f10551 100644
+--- a/hal/Usb.h
++++ b/hal/Usb.h
+@@ -64,6 +64,7 @@
+ #define ID_PATH "id"
+ #define VBUS_PATH "b_sess"
+ #define USB_DATA_PATH "usb_data_enabled"
++#define USB_DATA_PATH_SEC "/sys/devices/virtual/usb_notify/usb_control/disable"
+ 
+ #define USB_CONTROLLER_PROP "vendor.usb.controller"
+ #define GADGET_PATH "/config/usb_gadget/g1/"
