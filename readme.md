@@ -9,7 +9,7 @@ Download or git clone these repositories and add to your kscope project.
 <https://github.com/kindle4jerry/android_vendor_xiaomi_apollon>  
 <https://github.com/kindle4jerry/android_vendor_xiaomi_sm8250-common>  
 <https://github.com/kindle4jerry/android_hardware_xiaomi>  
-<https://github.com/kindle4jerry/android_hardware_lineage_interfaces> (instead of kscope's)  
+<https://github.com/kindle4jerry/android_hardware_lineage_interfaces> (use this one instead of kscope's)  
 <https://github.com/kindle4jerry/android_hardware_lineage_livedisplay>  
 ### Build command
 . build/envsetup.sh  
