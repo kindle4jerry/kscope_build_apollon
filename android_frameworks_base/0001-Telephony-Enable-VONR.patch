@@ -1,0 +1,26 @@
+From db3be6414b9bdf95559b6dca2647aca38a34cdcb Mon Sep 17 00:00:00 2001
+From: kindle4jerry <kindle4jerry@gmail.com>
+Date: Sat, 29 Oct 2022 21:28:47 +0800
+Subject: [PATCH] Telephony: Enable VONR
+
+Change-Id: I8503c496b39c5c4308c7645834948988c01bcfbb
+---
+ telephony/java/android/telephony/CarrierConfigManager.java | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/telephony/java/android/telephony/CarrierConfigManager.java b/telephony/java/android/telephony/CarrierConfigManager.java
+index 886a76f9..0f88485c 100644
+--- a/telephony/java/android/telephony/CarrierConfigManager.java
++++ b/telephony/java/android/telephony/CarrierConfigManager.java
+@@ -5991,7 +5991,7 @@ public class CarrierConfigManager {
+         sDefaults.putBoolean(KEY_DISPLAY_NO_DATA_NOTIFICATION_ON_PERMANENT_FAILURE_BOOL, false);
+         sDefaults.putBoolean(KEY_UNTHROTTLE_DATA_RETRY_WHEN_TAC_CHANGES_BOOL, false);
+         sDefaults.putBoolean(KEY_VONR_SETTING_VISIBILITY_BOOL, true);
+-        sDefaults.putBoolean(KEY_VONR_ENABLED_BOOL, false);
++        sDefaults.putBoolean(KEY_VONR_ENABLED_BOOL, true);
+     }
+ 
+     /**
+-- 
+2.25.1
+
